@@ -12,6 +12,7 @@ contract CarbonNFT is ERC721Enumerable, Ownable {
         string ipfsCID;
         string location;
         string projectName;
+        string projectDescription;
     }
 
     mapping(uint256 => ProjectData) private tokenMetadata;
