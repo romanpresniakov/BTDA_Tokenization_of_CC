@@ -1,121 +1,210 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useState } from "react";
 
-export default function GalleryPage({ tokens, loadMetadata, retireToken, metadata, walletAddress }) {
-  // Case-insensitive, trimmed comparison
-  const userTokens = useMemo(
-    () =>
-      walletAddress
-        ? tokens.filter(
-            token =>
-              token.owner &&
-              token.owner.toLowerCase().trim() === walletAddress.toLowerCase().trim()
-          )
-        : [],
-    [tokens, walletAddress]
-  );
+export default function GalleryPage({ contract, walletAddress }) {
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [retiring, setRetiring] = useState({});
+  const [retireMsg, setRetireMsg] = useState({});
+  const [retireInput, setRetireInput] = useState({});
 
-  const otherTokens = useMemo(
-    () =>
-      walletAddress
-        ? tokens.filter(
-            token =>
-              token.owner &&
-              token.owner.toLowerCase().trim() !== walletAddress.toLowerCase().trim()
-          )
-        : tokens,
-    [tokens, walletAddress]
-  );
+  useEffect(() => {
+    if (!contract || !walletAddress) return;
+
+    const fetchProjects = async () => {
+      setLoading(true);
+      try {
+        const projectCounter = await contract.projectCounter();
+        const tokenCounter = await contract.tokenCounter();
+        const projectList = [];
+        for (let projectId = 0; projectId < Number(projectCounter); projectId++) {
+          const [registryProjectId, ipfsCID, location, projectName] = await contract.getProjectData(projectId);
+
+          let totalNFTs = 0;
+          let userTokens = [];
+          for (let tokenId = 0; tokenId < Number(tokenCounter); tokenId++) {
+            const tokenProjectId = await contract.tokenToProject(tokenId);
+            if (Number(tokenProjectId) === projectId) {
+              totalNFTs++;
+              const owner = await contract.ownerOf(tokenId);
+              if (owner.toLowerCase() === walletAddress.toLowerCase()) {
+                const retired = await contract.isRetired(tokenId);
+                userTokens.push({ tokenId, retired });
+              }
+            }
+          }
+
+          projectList.push({
+            projectId,
+            registryProjectId,
+            ipfsCID,
+            location,
+            projectName,
+            totalNFTs,
+            userTokens, // Array of {tokenId, retired}
+          });
+        }
+
+        setProjects(projectList);
+      } catch (err) {
+        console.error("Error loading projects:", err);
+      }
+      setLoading(false);
+    };
+
+    fetchProjects();
+  }, [contract, walletAddress]);
+
+  // Handler to retire N tokens
+  const handleRetire = async (projectId, numToRetire) => {
+    setRetireMsg({});
+    setRetiring((prev) => ({ ...prev, [projectId]: true }));
+
+    try {
+      const project = projects.find(p => p.projectId === projectId);
+      const activeTokens = project.userTokens.filter(t => !t.retired);
+      if (numToRetire < 1 || numToRetire > activeTokens.length) {
+        setRetireMsg((prev) => ({
+          ...prev,
+          [projectId]: `Invalid number. You have ${activeTokens.length} active tokens.`,
+        }));
+        setRetiring((prev) => ({ ...prev, [projectId]: false }));
+        return;
+      }
+      for (let i = 0; i < numToRetire; i++) {
+        const tokenId = activeTokens[i].tokenId;
+        const tx = await contract.retire(tokenId);
+        await tx.wait();
+      }
+      setRetireMsg((prev) => ({
+        ...prev,
+        [projectId]: `Retired ${numToRetire} token(s)!`,
+      }));
+      // For demo purposes: reload the page to refresh data
+      window.location.reload();
+    } catch (e) {
+      setRetireMsg((prev) => ({
+        ...prev,
+        [projectId]: "Error retiring tokens: " + (e.reason || e.message),
+      }));
+      setRetiring((prev) => ({ ...prev, [projectId]: false }));
+    }
+  };
+
+  // User's collections
+  const myProjects = projects.filter(p => p.userTokens.length > 0);
 
   return (
-    <div className="mb-5">
-      {/* Debug: show addresses */}
-      <div className="mb-2 text-muted small">
-        <div>My address: <code>{walletAddress || "(not connected)"}</code></div>
-        <div>First token owner: <code>{tokens[0]?.owner}</code></div>
+    <div className="container">
+      <h2 className="mb-4">Bridged Carbon Projects</h2>
+      {loading && <div>Loading projects...</div>}
+
+      <h4 className="mt-4">My Collections</h4>
+      {myProjects.length === 0 && <p>You don't own any NFTs in a bridged collection.</p>}
+      <div className="row">
+        {myProjects.map(project => {
+          const activeTokens = project.userTokens.filter(t => !t.retired);
+          const retiredTokens = project.userTokens.filter(t => t.retired);
+          return (
+            <div key={project.projectId} className="col-md-6 mb-4">
+              <div className="card h-100">
+                <div className="card-body">
+                  <span className="badge bg-success mb-2">Bridged from registry</span>
+                  <h5 className="card-title">{project.projectName}</h5>
+                  <div className="mb-2"><strong>Registry Project ID:</strong> {project.registryProjectId}</div>
+                  <div className="mb-2"><strong>Location:</strong> {project.location}</div>
+                  <div className="mb-2"><strong>Total NFTs in Collection:</strong> {project.totalNFTs}</div>
+                  <div className="mb-2">
+                    <strong>IPFS CID:</strong>{" "}
+                    <a href={`https://ipfs.io/ipfs/${project.ipfsCID}`} target="_blank" rel="noopener noreferrer">
+                      {project.ipfsCID}
+                    </a>
+                  </div>
+                  <div className="mb-2">
+                    <strong>Your Active NFTs:</strong> {activeTokens.length}
+                  </div>
+                  <div className="mb-2">
+                    <strong>Your Retired NFTs:</strong> {retiredTokens.length}
+                  </div>
+                  <div className="mb-2 d-flex align-items-center">
+                    <input
+                      type="number"
+                      min={1}
+                      max={activeTokens.length}
+                      value={retireInput[project.projectId] || ""}
+                      onChange={e =>
+                        setRetireInput(input => ({
+                          ...input,
+                          [project.projectId]: e.target.value,
+                        }))
+                      }
+                      className="form-control"
+                      style={{ width: 80, marginRight: 8 }}
+                      placeholder="Amount"
+                      disabled={activeTokens.length === 0 || retiring[project.projectId]}
+                    />
+                    <button
+                      className="btn btn-danger"
+                      disabled={
+                        retiring[project.projectId] ||
+                        !retireInput[project.projectId] ||
+                        Number(retireInput[project.projectId]) < 1 ||
+                        Number(retireInput[project.projectId]) > activeTokens.length
+                      }
+                      onClick={() =>
+                        handleRetire(
+                          project.projectId,
+                          Number(retireInput[project.projectId])
+                        )
+                      }
+                    >
+                      {retiring[project.projectId] ? "Retiring..." : "Retire"}
+                    </button>
+                  </div>
+                  {retireMsg[project.projectId] && (
+                    <div className="mt-2">
+                      <span
+                        className={
+                          retireMsg[project.projectId].toLowerCase().includes("retired")
+                            ? "text-success"
+                            : "text-danger"
+                        }
+                      >
+                        {retireMsg[project.projectId]}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Headline for user's own NFTs */}
-      <h2 className="h4 mt-4 mb-3">Your Carbon NFTs</h2>
-      {userTokens.length > 0 ? (
-        <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5">
-          {userTokens.map(token => (
-            <div className="col" key={token.id}>
-              <div className="card h-100 shadow-sm">
-                <div className="card-body">
-                  <h5 className="card-title">Token #{token.id}</h5>
-                  <p className="card-text small mb-1"><strong>Status:</strong> {token.retired ? "Retired" : "Active"}</p>
-                  <div className="d-flex gap-2">
-                    <button className="btn btn-outline-primary btn-sm" onClick={() => loadMetadata(token.id)}>
-                      View
-                    </button>
-                    {!token.retired && (
-                      <button className="btn btn-danger btn-sm" onClick={() => retireToken(token.id)}>
-                        Retire
-                      </button>
-                    )}
-                  </div>
+      {/* All Bridged Projects (display only, no retire) */}
+      <h4 className="mt-5">All Bridged Projects</h4>
+      <div className="row">
+        {projects.length === 0 && !loading && <p>No bridged projects found.</p>}
+        {projects.map(project => (
+          <div key={project.projectId} className="col-md-6 mb-4">
+            <div className="card h-100">
+              <div className="card-body">
+                <span className="badge bg-success mb-2">Bridged from registry</span>
+                <h5 className="card-title">{project.projectName}</h5>
+                <div className="mb-2"><strong>Registry Project ID:</strong> {project.registryProjectId}</div>
+                <div className="mb-2"><strong>Location:</strong> {project.location}</div>
+                <div className="mb-2"><strong>Total NFTs in Collection:</strong> {project.totalNFTs}</div>
+                <div className="mb-2">
+                  <strong>IPFS CID:</strong>{" "}
+                  <a href={`https://ipfs.io/ipfs/${project.ipfsCID}`} target="_blank" rel="noopener noreferrer">
+                    {project.ipfsCID}
+                  </a>
                 </div>
+                {/* No retire UI for all projects */}
               </div>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center text-muted mb-5">You don’t own any Carbon NFTs yet.</div>
-      )}
-
-      {/* Headline for all NFTs */}
-      <h2 className="h4 mt-4 mb-3">All Carbon NFTs</h2>
-      {otherTokens.length > 0 ? (
-        <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-          {otherTokens.map(token => (
-            <div className="col" key={token.id}>
-              <div className="card h-100 shadow-sm">
-                <div className="card-body">
-                  <h5 className="card-title">Token #{token.id}</h5>
-                  <p className="card-text small mb-1"><strong>Owner:</strong> {token.owner.slice(0, 6)}...{token.owner.slice(-4)}</p>
-                  <p className="card-text mb-2"><strong>Status:</strong> {token.retired ? "Retired" : "Active"}</p>
-                  <div className="d-flex gap-2">
-                    <button className="btn btn-outline-primary btn-sm" onClick={() => loadMetadata(token.id)}>
-                      View
-                    </button>
-                    {!token.retired && (
-                      <button className="btn btn-danger btn-sm" onClick={() => retireToken(token.id)}>
-                        Retire
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center text-muted">No other Carbon NFTs found.</div>
-      )}
-
-      {/* Metadata card, unchanged */}
-      {metadata && (
-        <div className="card mt-5">
-          <div className="card-body">
-            <h4 className="card-title">Token #{metadata.id} Metadata</h4>
-            <p><strong>IPFS CID:</strong> {metadata.ipfsCID}</p>
-            <p><strong>Location:</strong> {metadata.location}</p>
-            <p><strong>Project Name:</strong> {metadata.projectName}</p>
-            {metadata.offchain?.image && (
-              <img
-                src={metadata.offchain.image.replace("ipfs://", "https://ipfs.io/ipfs/")}
-                alt="NFT"
-                style={{ maxWidth: "200px", borderRadius: "8px" }}
-                className="mb-2"
-              />
-            )}
-            {metadata.offchain?.description && (
-              <p className="mt-2"><strong>Description:</strong> {metadata.offchain.description}</p>
-            )}
           </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
-

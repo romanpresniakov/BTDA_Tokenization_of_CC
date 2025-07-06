@@ -7,19 +7,19 @@ export default function AppWrapper() {
   const [provider, setProvider] = useState(null);
   const [contract, setContract] = useState(null);
   const [signer, setSigner] = useState(null);
-  const [tokens, setTokens] = useState([]);
+
+  const [projects, setProjects] = useState([]); // [{ projectId, ipfsCID, location, projectName }]
+  const [tokens, setTokens] = useState([]); // [{ id, owner, projectId, retired }]
   const [metadata, setMetadata] = useState(null);
-  const [mintData, setMintData] = useState({ ipfsCID: "", location: "", projectName: "" });
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState("");
 
-  // Effect: On startup, try to connect and set up everything
+  // -------- Wallet connection and contract initialization -----------
   useEffect(() => {
     checkWalletConnection();
-
-    // Listen for account changes (MetaMask etc.)
     if (window.ethereum) {
       window.ethereum.on("accountsChanged", handleAccountsChanged);
     }
@@ -31,7 +31,6 @@ export default function AppWrapper() {
     // eslint-disable-next-line
   }, []);
 
-  // When account changes, update address and reconnect
   const handleAccountsChanged = async (accounts) => {
     if (accounts.length > 0) {
       setWalletAddress(accounts[0]);
@@ -78,7 +77,8 @@ export default function AppWrapper() {
     }
   };
 
-  // Pass the correct address!
+  // --------- Contract Setup and Data Fetching ------------
+
   const initializeContract = async (addressOverride = null) => {
     try {
       const tempProvider = new ethers.BrowserProvider(window.ethereum);
@@ -92,21 +92,41 @@ export default function AppWrapper() {
       setWalletAddress(address);
       setWalletConnected(true);
 
-      await loadTokens(tempContract);
+      await Promise.all([loadProjects(tempContract), loadTokens(tempContract)]);
     } catch (err) {
       console.error("Error initializing contract:", err);
       setError("Error initializing contract: " + err.message);
     }
   };
 
+  // ------------- Projects & Tokens ---------------
+
+  // Load all projects and their metadata
+  const loadProjects = async (contractInstance = contract) => {
+    try {
+      const projectCount = await contractInstance.projectCounter();
+      const list = [];
+      for (let i = 0; i < projectCount; i++) {
+        const [ipfsCID, location, projectName] = await contractInstance.getProjectData(i);
+        list.push({ projectId: i, ipfsCID, location, projectName });
+      }
+      setProjects(list);
+    } catch (err) {
+      console.error("Error loading projects:", err);
+      setError("Error loading projects: " + err.message);
+    }
+  };
+
+  // Load all tokens and assign project IDs
   const loadTokens = async (contractInstance = contract) => {
     try {
-      const total = await contractInstance.tokenCounter();
+      const tokenCount = await contractInstance.tokenCounter();
       const list = [];
-      for (let i = 0; i < total; i++) {
+      for (let i = 0; i < tokenCount; i++) {
         const owner = await contractInstance.ownerOf(i);
         const retired = await contractInstance.isRetired(i);
-        list.push({ id: i, owner, retired });
+        const projectId = await contractInstance.tokenToProject(i);
+        list.push({ id: i, owner, retired, projectId: projectId.toNumber ? projectId.toNumber() : Number(projectId) });
       }
       setTokens(list);
     } catch (err) {
@@ -115,94 +135,42 @@ export default function AppWrapper() {
     }
   };
 
-  const mintNFT = async () => {
-    console.log("mintNFT called", contract, signer, mintData);
-    if (!contract || !signer) return;
-    if (!mintData.ipfsCID || !mintData.location || !mintData.projectName) {
-      setError("Please fill in all fields before minting.");
-      return;
-    }
+  // Fetch project metadata for viewing details
+  const fetchProjectMetadata = async (projectId) => {
     try {
-      setLoading(true);
-      setError("");
-      const tx = await contract.mintNFT(
-        walletAddress,
-        mintData.ipfsCID,
-        mintData.location,
-        mintData.projectName
-      );
-      await tx.wait();
-      setError("✅ NFT successfully minted.");
-      await loadTokens();
-      setMintData({ ipfsCID: "", location: "", projectName: "" });
+      if (!contract) return null;
+      const [ipfsCID, location, projectName] = await contract.getProjectData(projectId);
+      return { projectId, ipfsCID, location, projectName };
     } catch (err) {
-      console.error("Error minting NFT:", err);
-      setError("Error minting NFT: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const retireToken = async (id) => {
-    if (!contract) return;
-    try {
-      setLoading(true);
-      setError("");
-      const tx = await contract.retire(id);
-      await tx.wait();
-      await loadTokens();
-    } catch (err) {
-      console.error("Error retiring token:", err);
-      setError("Error retiring token: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTokenUriMetadata = async (id) => {
-    try {
-      const uri = await contract.tokenURI(id);
-      const url = uri.replace("ipfs://", "https://ipfs.io/ipfs/");
-      const res = await fetch(url);
-      return await res.json();
-    } catch (err) {
-      console.error("Failed to fetch tokenURI metadata", err);
+      console.error("Error loading project metadata:", err);
+      setError("Error loading project metadata: " + err.message);
       return null;
     }
   };
 
-  const loadMetadata = async (id) => {
-    if (!contract) return;
-    try {
-      const data = await contract.getProjectData(id);
-      const offchain = await fetchTokenUriMetadata(id);
-      setMetadata({
-        id,
-        ipfsCID: data[0],
-        location: data[1],
-        projectName: data[2],
-        offchain,
-      });
-    } catch (err) {
-      console.error("Error loading metadata:", err);
-      setError("Error loading metadata: " + err.message);
-    }
+  // MintPage handles minting by calling contract directly, but you can also add here if you want
+
+  // GalleryPage uses this to view metadata for a project
+  const loadMetadata = async (projectId) => {
+    const data = await fetchProjectMetadata(projectId);
+    setMetadata(data);
   };
 
   return {
     contract,
     signer,
-    tokens,
-    metadata,
-    mintNFT,
-    mintData,
-    setMintData,
-    loadMetadata,
-    retireToken,
-    loading,
-    error,
-    walletAddress, // ← Always returned and always up to date!
+    walletAddress,
     walletConnected,
     connectWallet,
+    projects,
+    tokens,
+    metadata,
+    loadProjects,
+    loadTokens,
+    loadMetadata,
+    loading,
+    setLoading,
+    error,
+    setError,
   };
 }

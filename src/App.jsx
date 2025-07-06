@@ -8,16 +8,15 @@ export default function App() {
   const {
     contract,
     signer,
+    projects,
     tokens,
     metadata,
-    mintNFT,
-    mintData,
-    setMintData,
     loadMetadata,
-    retireToken,
     loading,
+    setLoading,
     error,
-    walletAddress, // <--- Make sure you have this from AppWrapper or however you store the connected wallet address
+    setError,
+    walletAddress,
   } = AppWrapper();
 
   return (
@@ -36,11 +35,11 @@ export default function App() {
               <MintPage
                 contract={contract}
                 signer={signer}
-                mintNFT={mintNFT}
-                mintData={mintData}
-                setMintData={setMintData}
                 loading={loading}
+                setLoading={setLoading}
                 error={error}
+                setError={setError}
+                walletAddress={walletAddress}
               />
             }
           />
@@ -48,11 +47,9 @@ export default function App() {
             path="/gallery"
             element={
               <GalleryPage
-                tokens={tokens}
-                loadMetadata={loadMetadata}
-                retireToken={retireToken}
-                metadata={metadata}
+                contract={contract} // <-- THIS IS THE FIX!
                 walletAddress={walletAddress}
+                // You can still pass other props if you use them
               />
             }
           />
