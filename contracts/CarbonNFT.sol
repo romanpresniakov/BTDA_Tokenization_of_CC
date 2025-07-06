@@ -28,7 +28,8 @@ contract CarbonNFT is ERC721Enumerable, Ownable {
         address recipient,
         string memory ipfsCID,
         string memory location,
-        string memory projectName
+        string memory projectName,
+        string memory projedctDescription
     ) public onlyOwner returns (uint256) {
         uint256 newTokenId = tokenCounter;
         _safeMint(recipient, newTokenId);
@@ -37,16 +38,17 @@ contract CarbonNFT is ERC721Enumerable, Ownable {
             ipfsCID: ipfsCID,
             location: location,
             projectName: projectName
+            projectDescription: projectDescription
         });
 
         tokenCounter++;
         return newTokenId;
     }
 
-    function getProjectData(uint256 tokenId) public view returns (string memory, string memory, string memory) {
+    function getProjectData(uint256 tokenId) public view returns (string memory, string memory, string memory, string memory) {
         require( _ownerOf(tokenId) != address(0), "Token does not exist");
         ProjectData memory data = tokenMetadata[tokenId];
-        return (data.ipfsCID, data.location, data.projectName);
+        return (data.ipfsCID, data.location, data.projectName, data.projectDescription);
     }
 
     //return IPFS URI directly
