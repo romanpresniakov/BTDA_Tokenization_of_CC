@@ -1,38 +1,37 @@
 [
   {
-    "projectId": "VCS-100001",
-    "projectName": "Demo Rainforest Conservation",
+    "registryProjectId": "1001",
+    "projectName": "Amazon Rainforest Offset 2025",
     "location": "Brazil",
-    "amountRetired": 10,
-    "retiredBy": "Rainforest Group",
-    "retiredDate": "2024-05-10",
-    "comment": "Bridged to 0x1234...abcd"
+    "ipfsCID": "bafkreialyx7xmnusw6omb6s2rehvldogxsgsrnxyggtaernsrzcqepmcli",
+    "amount": 15
   },
   {
-    "projectId": "VCS-100002",
-    "projectName": "Mangrove Restoration Initiative",
+    "registryProjectId": "1002",
+    "projectName": "Mangrove Restoration 2024",
     "location": "Vietnam",
-    "amountRetired": 25,
-    "retiredBy": "Blue Carbon Solutions",
-    "retiredDate": "2024-05-12",
-    "comment": "Bridged to 0xABCD...1234"
+    "ipfsCID": "bafybeiafw5edh2vl4m57fx3z6m3uv3oa3rfvhqvtgt4kt64tkon22tzedi/metadata.json",
+    "amount": 20
   },
   {
-    "projectId": "VCS-100003",
-    "projectName": "Peatland Preservation Project",
-    "location": "Indonesia",
-    "amountRetired": 15,
-    "retiredBy": "Peat Protectors",
-    "retiredDate": "2024-06-01",
-    "comment": "For blockchain demonstration"
+    "registryProjectId": "1003",
+    "projectName": "Alpine Reforestation Project",
+    "location": "Switzerland",
+    "ipfsCID": "bafybeiebqysom3lpw4poak7fpwcl57dsvz4yyufnzgkvwbcp5zq7hxgxhm/metadata.json",
+    "amount": 8
   },
   {
-    "projectId": "VCS-100004",
-    "projectName": "Grassland Restoration (Demo)",
-    "location": "Mongolia",
-    "amountRetired": 8,
-    "retiredBy": "Mongol Steppe Initiative",
-    "retiredDate": "2024-06-10",
-    "comment": ""
+    "registryProjectId": "1004",
+    "projectName": "Urban Tree Planting",
+    "location": "Berlin, Germany",
+    "ipfsCID": "bafybeib6vfgsfnz3qb6jmcymvbyeo6fytvltkswdtbknuuwrpwfe6fvsre/metadata.json",
+    "amount": 12
+  },
+  {
+    "registryProjectId": "1005",
+    "projectName": "Sahara Solar Power Offset",
+    "location": "Morocco",
+    "ipfsCID": "bafybeiar7waf6zbljwxnmxmve4j6ql3y5b7ypwb6ekojipdgj2ne6tjese/metadata.json",
+    "amount": 30
   }
 ]

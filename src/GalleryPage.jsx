@@ -1,12 +1,34 @@
 import React, { useEffect, useState } from "react";
 
+// CHANGE THIS to your gateway:
+const PINATA_GATEWAY = "https://yellow-wooden-pinniped-79.mypinata.cloud/ipfs/";
+
+// Utility to convert ipfs://... to HTTP for your gateway
+function ipfsToHttp(ipfsUri) {
+  if (!ipfsUri) return "";
+  if (ipfsUri.startsWith("ipfs://")) {
+    return PINATA_GATEWAY + ipfsUri.slice(7);
+  }
+  return ipfsUri.startsWith("http") ? ipfsUri : PINATA_GATEWAY + ipfsUri;
+}
+
 export default function GalleryPage({ contract, walletAddress }) {
   const [projects, setProjects] = useState([]);
+  const [ipfsMeta, setIpfsMeta] = useState({});
   const [loading, setLoading] = useState(false);
   const [retiring, setRetiring] = useState({});
   const [retireMsg, setRetireMsg] = useState({});
   const [retireInput, setRetireInput] = useState({});
 
+  // Add soft gray background to the whole page (one-time)
+  useEffect(() => {
+    document.body.style.background = "#f4f7fa";
+    return () => {
+      document.body.style.background = "";
+    };
+  }, []);
+
+  // 1. Fetch on-chain projects
   useEffect(() => {
     if (!contract || !walletAddress) return;
 
@@ -40,10 +62,9 @@ export default function GalleryPage({ contract, walletAddress }) {
             location,
             projectName,
             totalNFTs,
-            userTokens, // Array of {tokenId, retired}
+            userTokens,
           });
         }
-
         setProjects(projectList);
       } catch (err) {
         console.error("Error loading projects:", err);
@@ -53,6 +74,28 @@ export default function GalleryPage({ contract, walletAddress }) {
 
     fetchProjects();
   }, [contract, walletAddress]);
+
+  // 2. Fetch IPFS metadata for each project (async batch) using custom gateway
+  useEffect(() => {
+    async function fetchIpfsMeta() {
+      const newMeta = {};
+      await Promise.all(
+        projects.map(async project => {
+          if (!project.ipfsCID) return;
+          try {
+            const url = ipfsToHttp(project.ipfsCID);
+            const res = await fetch(url, { cache: "reload" });
+            if (res.ok) {
+              const meta = await res.json();
+              newMeta[project.projectId] = meta;
+            }
+          } catch { /* Ignore IPFS errors */ }
+        })
+      );
+      setIpfsMeta(newMeta);
+    }
+    if (projects.length > 0) fetchIpfsMeta();
+  }, [projects]);
 
   // Handler to retire N tokens
   const handleRetire = async (projectId, numToRetire) => {
@@ -79,8 +122,7 @@ export default function GalleryPage({ contract, walletAddress }) {
         ...prev,
         [projectId]: `Retired ${numToRetire} token(s)!`,
       }));
-      // For demo purposes: reload the page to refresh data
-      window.location.reload();
+      window.location.reload(); // Demo: reload to refresh data
     } catch (e) {
       setRetireMsg((prev) => ({
         ...prev,
@@ -93,32 +135,61 @@ export default function GalleryPage({ contract, walletAddress }) {
   // User's collections
   const myProjects = projects.filter(p => p.userTokens.length > 0);
 
+  // Helper: get metadata (fallbacks to on-chain name/location)
+  const getMeta = (project) => {
+    const meta = ipfsMeta[project.projectId];
+    return {
+      name: meta?.name || project.projectName,
+      description: meta?.description,
+      image: meta?.image ? ipfsToHttp(meta.image) : null,
+      location: meta?.location || project.location,
+    };
+  };
+
   return (
     <div className="container">
-      <h2 className="mb-4">Bridged Carbon Projects</h2>
+      <h2 className="mb-4 fw-bold text-center" style={{ letterSpacing: "0.03em", fontSize: "2rem" }}>
+        Bridged Carbon Projects
+      </h2>
       {loading && <div>Loading projects...</div>}
 
-      <h4 className="mt-4">My Collections</h4>
+      <h4 className="mt-4 fw-semibold text-secondary">My Collections</h4>
       {myProjects.length === 0 && <p>You don't own any NFTs in a bridged collection.</p>}
       <div className="row">
         {myProjects.map(project => {
           const activeTokens = project.userTokens.filter(t => !t.retired);
           const retiredTokens = project.userTokens.filter(t => t.retired);
+          const meta = getMeta(project);
+
           return (
             <div key={project.projectId} className="col-md-6 mb-4">
-              <div className="card h-100">
-                <div className="card-body">
-                  <span className="badge bg-success mb-2">Bridged from registry</span>
-                  <h5 className="card-title">{project.projectName}</h5>
-                  <div className="mb-2"><strong>Registry Project ID:</strong> {project.registryProjectId}</div>
-                  <div className="mb-2"><strong>Location:</strong> {project.location}</div>
-                  <div className="mb-2"><strong>Total NFTs in Collection:</strong> {project.totalNFTs}</div>
-                  <div className="mb-2">
-                    <strong>IPFS CID:</strong>{" "}
-                    <a href={`https://ipfs.io/ipfs/${project.ipfsCID}`} target="_blank" rel="noopener noreferrer">
+              <div className="card h-100 shadow-sm border-0 rounded-4" style={{ background: "#fff" }}>
+                {meta.image && (
+                  <img
+                    src={meta.image}
+                    alt={meta.name}
+                    style={{
+                      width: "100%",
+                      borderRadius: "2rem 2rem 0 0",
+                      maxHeight: 260,
+                      objectFit: "cover",
+                      borderBottom: "1px solid #f2f2f2"
+                    }}
+                  />
+                )}
+                <div className="card-body px-4 py-3">
+                  <span className="badge bg-success mb-2 px-3 py-2" style={{ fontSize: 15, fontWeight: 500, borderRadius: 14 }}>Bridged from registry</span>
+                  <h5 className="card-title mb-2" style={{ fontSize: 24, fontWeight: 700, letterSpacing: ".01em" }}>{meta.name}</h5>
+                  <div className="mb-2 text-muted" style={{ fontSize: 15 }}><strong>Registry Project ID:</strong> {project.registryProjectId}</div>
+                  <div className="mb-2" style={{ fontSize: 15 }}><strong>Location:</strong> {meta.location}</div>
+                  <div className="mb-2" style={{ fontSize: 15 }}><strong>Total NFTs:</strong> {project.totalNFTs}</div>
+                  <div className="mb-2" style={{ fontSize: 15 }}>
+                    <strong>IPFS:</strong>{" "}
+                    <a href={ipfsToHttp(project.ipfsCID)} target="_blank" rel="noopener noreferrer" className="text-primary" style={{ wordBreak: "break-all" }}>
                       {project.ipfsCID}
                     </a>
                   </div>
+                  {meta.description && <div className="mb-2 text-secondary" style={{ fontSize: 16 }}>{meta.description}</div>}
                   <div className="mb-2">
                     <strong>Your Active NFTs:</strong> {activeTokens.length}
                   </div>
@@ -138,12 +209,13 @@ export default function GalleryPage({ contract, walletAddress }) {
                         }))
                       }
                       className="form-control"
-                      style={{ width: 80, marginRight: 8 }}
+                      style={{ width: 90, marginRight: 10, borderRadius: 10, fontSize: 17 }}
                       placeholder="Amount"
                       disabled={activeTokens.length === 0 || retiring[project.projectId]}
                     />
                     <button
-                      className="btn btn-danger"
+                      className="btn btn-danger px-3 py-2"
+                      style={{ fontWeight: 500, borderRadius: 12 }}
                       disabled={
                         retiring[project.projectId] ||
                         !retireInput[project.projectId] ||
@@ -181,29 +253,46 @@ export default function GalleryPage({ contract, walletAddress }) {
       </div>
 
       {/* All Bridged Projects (display only, no retire) */}
-      <h4 className="mt-5">All Bridged Projects</h4>
+      <h4 className="mt-5 fw-semibold text-secondary">All Bridged Projects</h4>
       <div className="row">
         {projects.length === 0 && !loading && <p>No bridged projects found.</p>}
-        {projects.map(project => (
-          <div key={project.projectId} className="col-md-6 mb-4">
-            <div className="card h-100">
-              <div className="card-body">
-                <span className="badge bg-success mb-2">Bridged from registry</span>
-                <h5 className="card-title">{project.projectName}</h5>
-                <div className="mb-2"><strong>Registry Project ID:</strong> {project.registryProjectId}</div>
-                <div className="mb-2"><strong>Location:</strong> {project.location}</div>
-                <div className="mb-2"><strong>Total NFTs in Collection:</strong> {project.totalNFTs}</div>
-                <div className="mb-2">
-                  <strong>IPFS CID:</strong>{" "}
-                  <a href={`https://ipfs.io/ipfs/${project.ipfsCID}`} target="_blank" rel="noopener noreferrer">
-                    {project.ipfsCID}
-                  </a>
+        {projects.map(project => {
+          const meta = getMeta(project);
+          return (
+            <div key={project.projectId} className="col-md-6 mb-4">
+              <div className="card h-100 shadow-sm border-0 rounded-4" style={{ background: "#fff" }}>
+                {meta.image && (
+                  <img
+                    src={meta.image}
+                    alt={meta.name}
+                    style={{
+                      width: "100%",
+                      borderRadius: "2rem 2rem 0 0",
+                      maxHeight: 260,
+                      objectFit: "cover",
+                      borderBottom: "1px solid #f2f2f2"
+                    }}
+                  />
+                )}
+                <div className="card-body px-4 py-3">
+                  <span className="badge bg-success mb-2 px-3 py-2" style={{ fontSize: 15, fontWeight: 500, borderRadius: 14 }}>Bridged from registry</span>
+                  <h5 className="card-title mb-2" style={{ fontSize: 24, fontWeight: 700, letterSpacing: ".01em" }}>{meta.name}</h5>
+                  <div className="mb-2 text-muted" style={{ fontSize: 15 }}><strong>Registry Project ID:</strong> {project.registryProjectId}</div>
+                  <div className="mb-2" style={{ fontSize: 15 }}><strong>Location:</strong> {meta.location}</div>
+                  <div className="mb-2" style={{ fontSize: 15 }}><strong>Total NFTs:</strong> {project.totalNFTs}</div>
+                  <div className="mb-2" style={{ fontSize: 15 }}>
+                    <strong>IPFS:</strong>{" "}
+                    <a href={ipfsToHttp(project.ipfsCID)} target="_blank" rel="noopener noreferrer" className="text-primary" style={{ wordBreak: "break-all" }}>
+                      {project.ipfsCID}
+                    </a>
+                  </div>
+                  {meta.description && <div className="mb-2 text-secondary" style={{ fontSize: 16 }}>{meta.description}</div>}
+                  {/* No retire UI for all projects */}
                 </div>
-                {/* No retire UI for all projects */}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

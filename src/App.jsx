@@ -17,6 +17,8 @@ export default function App() {
     error,
     setError,
     walletAddress,
+    walletConnected,
+    connectWallet,    // <--- ADD THIS!
   } = AppWrapper();
 
   return (
@@ -28,6 +30,23 @@ export default function App() {
           <Link to="/" className="btn btn-primary btn-lg" style={{ minWidth: "120px" }}>Mint</Link>
           <Link to="/gallery" className="btn btn-primary btn-lg" style={{ minWidth: "120px" }}>Gallery</Link>
         </nav>
+        
+        {/* CONNECT WALLET BUTTON - only if not connected */}
+        {!walletConnected && (
+          <div className="mb-4 text-center">
+            <button className="btn btn-warning btn-lg" onClick={connectWallet}>
+              Connect Wallet
+            </button>
+          </div>
+        )}
+
+        {/* Show wallet address if connected */}
+        {walletConnected && walletAddress && (
+          <div className="mb-4 text-center" style={{fontSize: "1rem"}}>
+            Connected as <span className="badge bg-secondary">{walletAddress.slice(0,6)}...{walletAddress.slice(-4)}</span>
+          </div>
+        )}
+
         <Routes>
           <Route
             path="/"
@@ -47,9 +66,9 @@ export default function App() {
             path="/gallery"
             element={
               <GalleryPage
-                contract={contract} // <-- THIS IS THE FIX!
+                contract={contract}
                 walletAddress={walletAddress}
-                // You can still pass other props if you use them
+                // Add more props if needed
               />
             }
           />

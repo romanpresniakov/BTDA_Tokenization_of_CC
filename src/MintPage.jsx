@@ -3,28 +3,30 @@ import mockRegistry from "./mockRegistry.json";
 
 export default function MintPage({ contract, loading, setLoading, error, setError, walletAddress }) {
   const [projectId, setProjectId] = useState("");
-  const [ipfsCID, setIpfsCID] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-  const [showDetails, setShowDetails] = useState(false);
+  const [alreadyBridged, setAlreadyBridged] = useState(false);
 
-  // Find registry entry based on input
-  const registryEntry = mockRegistry.find(entry => entry.projectId === projectId);
+  // Find registry entry (NEW: using registryProjectId from registry)
+  const registryEntry = mockRegistry.find(entry => String(entry.registryProjectId) === String(projectId));
+
+  // Check on-chain if already bridged (if contract and registryEntry)
+  React.useEffect(() => {
+    let ignore = false;
+    setAlreadyBridged(false);
+    setSuccessMsg("");
+    setError("");
+    if (contract && registryEntry) {
+      contract.bridgedProjectIds(registryEntry.registryProjectId)
+        .then(res => { if (!ignore) setAlreadyBridged(res); })
+        .catch(() => { if (!ignore) setAlreadyBridged(false); });
+    }
+    return () => { ignore = true; };
+    // eslint-disable-next-line
+  }, [contract, projectId, registryEntry]);
 
   const handleProjectIdChange = e => {
     setProjectId(e.target.value);
-    setShowDetails(false);
     setSuccessMsg("");
-    setError("");
-  };
-
-  const handleIpfsCIDChange = e => {
-    setIpfsCID(e.target.value);
-    setSuccessMsg("");
-    setError("");
-  };
-
-  const handleShowDetails = () => {
-    setShowDetails(true);
     setError("");
   };
 
@@ -37,32 +39,27 @@ export default function MintPage({ contract, loading, setLoading, error, setErro
     try {
       if (!contract) throw new Error("Smart contract not ready.");
       if (!registryEntry) throw new Error("Project ID not found in registry.");
-
-      // Check on-chain: already bridged?
-      const alreadyBridged = await contract.bridgedProjectIds(registryEntry.projectId);
       if (alreadyBridged) throw new Error("This project has already been bridged!");
 
-      // Create project with registry metadata
+      // 1. Bridge the project (add to onchain projects)
       const createTx = await contract.createProject(
-        registryEntry.projectId,
-        ipfsCID,
+        registryEntry.registryProjectId,
+        registryEntry.ipfsCID,
         registryEntry.location,
         registryEntry.projectName
       );
       await createTx.wait();
 
-      // Get new projectId (projectCounter - 1)
+      // 2. Get the new projectId (projectCounter - 1)
       const projectCounter = await contract.projectCounter();
       const onchainProjectId = Number(projectCounter) - 1;
 
-      // Batch mint (amount from registry)
-      const mintTx = await contract.mintBatch(walletAddress, onchainProjectId, registryEntry.amountRetired);
+      // 3. Batch mint (amount from registry)
+      const mintTx = await contract.mintBatch(walletAddress, onchainProjectId, registryEntry.amount);
       await mintTx.wait();
 
-      setSuccessMsg(`🎉 Bridged and minted ${registryEntry.amountRetired} NFT(s) for ${registryEntry.projectName}!`);
+      setSuccessMsg(`🎉 Bridged and minted ${registryEntry.amount} NFT(s) for ${registryEntry.projectName}!`);
       setProjectId("");
-      setIpfsCID("");
-      setShowDetails(false);
     } catch (err) {
       setError(err.reason || err.message || "Batch minting failed.");
       console.error(err);
@@ -93,13 +90,13 @@ export default function MintPage({ contract, loading, setLoading, error, setErro
               name="projectId"
               value={projectId}
               onChange={handleProjectIdChange}
-              placeholder="VCS-100001"
+              placeholder="1001"
               required
-              disabled={!contract}
+              disabled={!contract || loading}
               autoComplete="off"
             />
             <div className="form-text">
-              Must match a projectId in the mock registry (case-sensitive).
+              Must match a <b>registryProjectId</b> in the registry.
             </div>
           </div>
 
@@ -126,11 +123,11 @@ export default function MintPage({ contract, loading, setLoading, error, setErro
                 />
               </div>
               <div className="mb-3">
-                <label className="form-label fw-bold">Amount (tons of CO₂)</label>
+                <label className="form-label fw-bold">Amount (tons of CO₂/NFTs)</label>
                 <input
                   className="form-control"
                   type="number"
-                  value={registryEntry.amountRetired}
+                  value={registryEntry.amount}
                   readOnly
                   tabIndex={-1}
                 />
@@ -160,21 +157,29 @@ export default function MintPage({ contract, loading, setLoading, error, setErro
                 </div>
               )}
               <div className="mb-3">
-                <label className="form-label fw-bold">IPFS CID</label>
+                <label className="form-label fw-bold">IPFS Metadata</label>
                 <input
                   className="form-control"
                   type="text"
-                  name="ipfsCID"
-                  value={ipfsCID}
-                  onChange={handleIpfsCIDChange}
-                  placeholder="bafy..."
-                  required
-                  disabled={!contract}
+                  value={registryEntry.ipfsCID}
+                  readOnly
+                  tabIndex={-1}
                 />
                 <div className="form-text">
-                  Enter the IPFS CID for your project metadata or image.
+                  <a
+                    href={`https://ipfs.io/ipfs/${registryEntry.ipfsCID}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View metadata on IPFS
+                  </a>
                 </div>
               </div>
+              {alreadyBridged && (
+                <div className="alert alert-warning py-2">
+                  This project has already been bridged. No further minting possible.
+                </div>
+              )}
             </>
           )}
 
@@ -185,7 +190,7 @@ export default function MintPage({ contract, loading, setLoading, error, setErro
               loading ||
               !contract ||
               !registryEntry ||
-              !ipfsCID
+              alreadyBridged
             }
           >
             {loading ? "Minting..." : "Mint Project NFTs"}
