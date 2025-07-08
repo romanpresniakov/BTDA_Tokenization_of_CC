@@ -1,0 +1,9 @@
+ {
+    "registryProjectId": "VCS-1016",
+    "projectName": "Forest Regeneration Chile",
+    "location": "Chile",
+    "amount": 45,
+    "ipfsCID": "ipfs://bafkreig225z4cymhcwc367zyrketsy7xfsxuazrkfa6wg2qp2x2fp6ceuy",
+    "retiredBy": "AndesForests",
+    "retiredDate": "2024-07-02"
+  }
