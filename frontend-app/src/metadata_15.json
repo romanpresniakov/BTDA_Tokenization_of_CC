@@ -1,9 +1,8 @@
 {
-    "registryProjectId": "VCS-1015",
-    "projectName": "Cookstoves for Health",
-    "location": "Guatemala",
-    "amount": 20,
-    "ipfsCID": "ipfs://bafkreianbvjtli4ifnbvqib3wdvglun6vmrqgxgd2ld6c2dpb26tkdwnqu",
-    "retiredBy": "CleanCook",
-    "retiredDate": "2024-07-07"
-  }
+  "name": "Cookstoves for Health",
+  "description": "Improved cookstove distribution for carbon/health, Guatemala.",
+  "location": "Guatemala",
+  "image": "ipfs://bafkreianbvjtli4ifnbvqib3wdvglun6vmrqgxgd2ld6c2dpb26tkdwnqu",
+  "retiredBy": "CleanCook",
+  "retiredDate": "2024-07-07"
+}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 
 // Use your Pinata gateway and registry CID
 const PINATA_GATEWAY = "https://yellow-wooden-pinniped-79.mypinata.cloud/ipfs/";
-const REGISTRY_CID = "bafkreibraxzzhite42v4g7dskkpfr6ktktvmhpeb7qzy5wjxdyqideylx4";
+const REGISTRY_CID = "bafkreietcgnnqinow2rzoqzgys22ws72heopajeh7e4jrzsrkupe24d3uy";
 
 export default function MintPage({ contract, loading, setLoading, error, setError, walletAddress }) {
   const [projectId, setProjectId] = useState("");

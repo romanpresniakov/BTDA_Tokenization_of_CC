@@ -1,9 +1,8 @@
 {
-    "registryProjectId": "VCS-1011",
-    "projectName": "Blue Carbon Mangroves Nigeria",
-    "location": "Nigeria",
-    "amount": 35,
-    "ipfsCID": "ipfs://bafkreibirjxshbjvdisokxprqrbtyddhndbnylkwxqvezi52eac34imxfy",
-    "retiredBy": "BlueRoots",
-    "retiredDate": "2024-07-12"
-  }
+  "name": "Blue Carbon Mangroves Nigeria",
+  "description": "Mangrove restoration and blue carbon retirement, Nigeria.",
+  "location": "Nigeria",
+  "image": "ipfs://bafkreibirjxshbjvdisokxprqrbtyddhndbnylkwxqvezi52eac34imxfy",
+  "retiredBy": "BlueRoots",
+  "retiredDate": "2024-07-12"
+}

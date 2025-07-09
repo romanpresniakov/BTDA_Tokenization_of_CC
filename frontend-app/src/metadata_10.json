@@ -1,9 +1,8 @@
 {
-    "registryProjectId": "VCS-1010",
-    "projectName": "Coral Reef Restoration Fiji",
-    "location": "Fiji",
-    "amount": 55,
-    "ipfsCID": "ipfs://bafkreie4s5vudgdnrlp737nenixgw6u3wg3awhixpgqrbk3p62jwbh4rxq",
-    "retiredBy": "OceanHealth",
-    "retiredDate": "2024-07-05"
-  }
+  "name": "Coral Reef Restoration Fiji",
+  "description": "Carbon offsets from coral restoration, Fiji.",
+  "location": "Fiji",
+  "image": "ipfs://bafkreie4s5vudgdnrlp737nenixgw6u3wg3awhixpgqrbk3p62jwbh4rxq",
+  "retiredBy": "OceanHealth",
+  "retiredDate": "2024-07-05"
+}

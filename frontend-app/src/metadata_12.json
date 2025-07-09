@@ -1,9 +1,8 @@
 {
-    "registryProjectId": "VCS-1012",
-    "projectName": "Hydro Mini-Grids Nepal",
-    "location": "Nepal",
-    "amount": 75,
-    "ipfsCID": "ipfs://bafkreid37hdcwywnaata7k5y43jkb5cmkndevgsz4lo7th4ts2kzek7ka4",
-    "retiredBy": "HydroNepal",
-    "retiredDate": "2024-07-09"
-  }
+  "name": "Hydro Mini-Grids Nepal",
+  "description": "Mini-hydro grids and verified offsets, Nepal.",
+  "location": "Nepal",
+  "image": "ipfs://bafkreid37hdcwywnaata7k5y43jkb5cmkndevgsz4lo7th4ts2kzek7ka4",
+  "retiredBy": "HydroNepal",
+  "retiredDate": "2024-07-09"
+}

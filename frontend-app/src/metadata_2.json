@@ -1,9 +1,9 @@
-{
-    "registryProjectId": "VCS-1002",
-    "projectName": "Mangrove Restoration Program",
-    "location": "Indonesia",
-    "amount": 200,
-    "ipfsCID": "ipfs://bafkreictewypkho4x3ue3mycr25rmugglzvqpdzzeuwnduietopet7pxba",
-    "retiredBy": "EcoAction",
-    "retiredDate": "2024-03-12"
-  }
+
+  {
+  "name": "Amazon Rainforest Offset 2025",
+  "description": "Verified retirement of 100 tons CO₂, supporting Amazon preservation.",
+  "location": "Brazil",
+  "image": "ipfs://bafkreictewypkho4x3ue3mycr25rmugglzvqpdzzeuwnduietopet7pxba",
+  "retiredBy": "CarbonBridgeDemoUser",
+  "retiredDate": "2024-01-05"
+}

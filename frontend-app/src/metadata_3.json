@@ -1,9 +1,10 @@
+
+
 {
-    "registryProjectId": "VCS-1003",
-    "projectName": "Wind Energy India",
-    "location": "India",
-    "amount": 50,
-    "ipfsCID": "ipfs://bafybeigmd7wrqk2ydbozewe54nccrbwoexrsafbv27auurk4fkeexaonme",
-    "retiredBy": "WindNow",
-    "retiredDate": "2024-04-18"
-  }
+  "name": "Wind Energy India",
+  "description": "Retirement of wind energy credits in India, supporting renewable power.",
+  "location": "India",
+  "image": "ipfs://bafybeigmd7wrqk2ydbozewe54nccrbwoexrsafbv27auurk4fkeexaonme",
+  "retiredBy": "WindNow",
+  "retiredDate": "2024-04-18"
+}

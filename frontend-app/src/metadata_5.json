@@ -1,9 +1,8 @@
 {
-    "registryProjectId": "VCS-1005",
-    "projectName": "Direct Air Capture Demo",
-    "location": "Iceland",
-    "amount": 30,
-    "ipfsCID": "ipfs://bafybeidyj5gwpqynejevzavy6uqz6yiv6os4eybe3gau65lqtiwlcnok34",
-    "retiredBy": "ClimeTech",
-    "retiredDate": "2024-02-15"
-  }
+  "name": "Direct Air Capture Demo",
+  "description": "Direct air carbon capture and storage demonstration, Iceland.",
+  "location": "Iceland",
+  "image": "ipfs://bafybeidyj5gwpqynejevzavy6uqz6yiv6os4eybe3gau65lqtiwlcnok34",
+  "retiredBy": "ClimeTech",
+  "retiredDate": "2024-02-15"
+}

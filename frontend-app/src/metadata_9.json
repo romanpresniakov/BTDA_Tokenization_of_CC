@@ -1,9 +1,9 @@
+
 {
-    "registryProjectId": "VCS-1009",
-    "projectName": "Urban Rooftop Solar Berlin",
-    "location": "Germany",
-    "amount": 40,
-    "ipfsCID": "ipfs://bafkreiegluocjfkxipsifwitw5rx3ammxoo6oqxf2yqbh3pvvxxown5fpi",
-    "retiredBy": "SunCity",
-    "retiredDate": "2024-07-11"
-  }
+  "name": "Urban Rooftop Solar Berlin",
+  "description": "Decentralized rooftop solar projects across Berlin, Germany.",
+  "location": "Germany",
+  "image": "ipfs://bafkreiegluocjfkxipsifwitw5rx3ammxoo6oqxf2yqbh3pvvxxown5fpi",
+  "retiredBy": "SunCity",
+  "retiredDate": "2024-07-11"
+}
